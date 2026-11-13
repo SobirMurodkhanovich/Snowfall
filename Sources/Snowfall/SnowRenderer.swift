@@ -20,6 +20,9 @@ final class SnowRenderer: NSObject, MTKViewDelegate {
     private var pileVertexCount = 0
     private var pileNeedsRebuild = true
 
+    /// Called on every frame right after the simulation moved (the window syncs the excavator here).
+    var onFrame: (() -> Void)?
+
     private var lastTime: CFTimeInterval = 0
     private var frameIndex = 0
 
@@ -73,6 +76,7 @@ final class SnowRenderer: NSObject, MTKViewDelegate {
         let dt = lastTime == 0 ? 1.0 / 60 : min(max(now - lastTime, 0), 0.05)
         lastTime = now
         advance(dt: Float(dt))
+        onFrame?()
 
         guard let pass = view.currentRenderPassDescriptor,
               let drawable = view.currentDrawable,

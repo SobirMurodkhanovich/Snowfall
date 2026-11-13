@@ -128,6 +128,21 @@ final class SnowPile {
         return removed
     }
 
+    /// Removes all visible snow between screen-local `x0` and `x1` (the excavator's bucket).
+    /// Returns the removed area in pt².
+    func scrape(from x0: Float, to x1: Float) -> Float {
+        guard !isEmpty, x1 >= minX, x0 <= maxX else { return 0 }
+        let first = max(0, Int(((x0 - originX) / columnWidth).rounded(.down)))
+        let last = min(count - 1, Int(((x1 - originX) / columnWidth).rounded(.down)))
+        guard first <= last else { return 0 }
+        var removed: Float = 0
+        for i in first...last where visible[i] && depth[i] > 0 {
+            removed += depth[i] * columnWidth
+            depth[i] = 0
+        }
+        return removed
+    }
+
     /// Empties the pile and returns its snow as lumps (position and area) that can fall elsewhere.
     func takeAll(maxChunks: Int) -> [(x: Float, y: Float, area: Float)] {
         defer { clear() }

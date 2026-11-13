@@ -70,6 +70,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hasCheckedDock = true
         lastDock = dock
         windows.forEach { $0.setDock(dock) }
+        placeExcavator()
+    }
+
+    /// The excavator lives on the screen with the Dock (or the main screen when the Dock is hidden).
+    private func placeExcavator() {
+        var host: SnowWindow?
+        if settings.showExcavator {
+            host = windows.first { $0.screenFrame == lastDock?.screenFrame }
+                ?? windows.first { $0.screenFrame == NSScreen.screens.first?.frame }
+        }
+        for window in windows {
+            window.setExcavatorEnabled(window === host)
+        }
     }
 
     @objc private func pollWindows() {
@@ -130,6 +143,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         onWindows.state = settings.pileOnWindows ? .on : .off
         menu.addItem(onWindows)
         menu.addItem(item("Yig'ilgan qorni tozalash", #selector(clearSnow)))
+        let excavator = item("Ekskavator (2 marta bosing)", #selector(toggleExcavator))
+        excavator.state = settings.showExcavator ? .on : .off
+        menu.addItem(excavator)
         menu.addItem(.separator())
 
         if !AXIsProcessTrusted() {
@@ -185,6 +201,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !settings.pileOnWindows {
             windows.forEach { $0.dropWindowSnow() }
         }
+    }
+
+    @objc private func toggleExcavator() {
+        settings.showExcavator.toggle()
+        placeExcavator()
     }
 
     @objc private func clearSnow() {

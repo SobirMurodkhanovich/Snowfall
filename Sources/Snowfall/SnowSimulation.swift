@@ -98,6 +98,9 @@ final class SnowSimulation {
     /// Ledges of windows currently on screen.
     private(set) var activeLedges: [Ledge] = []
 
+    /// The excavator on the Dock (only on the screen that has the Dock).
+    private(set) var excavator: Excavator?
+
     private var shelf: Shelf?
     private var clock: Float = 0
     private var spawnBudget: Float = 0
@@ -106,6 +109,13 @@ final class SnowSimulation {
     /// Nothing falling, nothing lying in sight: the render loop can stop.
     var isIdle: Bool {
         !isSnowing && particles.isEmpty && base.isEmpty && activeLedges.allSatisfy { $0.pile.isEmpty }
+            && !(excavator?.isBusy ?? false)
+    }
+
+    /// Where the excavator drives: along the top of the Dock, or the bottom of the screen.
+    private var lane: ClosedRange<Float> {
+        guard let shelf, shelf.maxX > shelf.minX else { return 0...width }
+        return shelf.minX...shelf.maxX
     }
 
     init(width: Float, height: Float) {
@@ -121,6 +131,20 @@ final class SnowSimulation {
             guard let s = newShelf, x >= s.minX, x <= s.maxX else { return 0 }
             return s.top
         }
+        excavator?.setLane(lane, groundY: shelf?.top ?? 0)
+    }
+
+    func setExcavatorEnabled(_ enabled: Bool) {
+        if enabled, excavator == nil {
+            excavator = Excavator(lane: lane, groundY: shelf?.top ?? 0)
+        } else if !enabled {
+            excavator = nil
+        }
+    }
+
+    /// Double-click on the excavator.
+    func startExcavator() {
+        excavator?.start()
     }
 
     func clearAll() {
@@ -239,6 +263,19 @@ final class SnowSimulation {
         if let cursor = cursorProvider?() { sweep(at: cursor) }
         moveParticles(dt)
 
+        if let excavator, excavator.isBusy, let dump = excavator.step(dt: dt, pile: base) {
+            // The bucket's snow tumbles over the end of the Dock.
+            let lumps = min(160, max(3, Int(dump.area / 50)))
+            for _ in 0..<lumps where particles.count < Self.maxParticles {
+                particles.append(makeLump(
+                    x: dump.x + Float.random(in: -4...4),
+                    y: dump.y + Float.random(in: -5...5),
+                    area: dump.area / Float(lumps),
+                    vx: dump.direction * Float.random(in: 15...55)
+                ))
+            }
+        }
+
         base.step(dt: dt, meltRate: Self.meltRate)
         for ledge in activeLedges {
             ledge.pile.step(dt: dt, meltRate: Self.meltRate)
@@ -300,14 +337,16 @@ final class SnowSimulation {
             p.x += (gust * p.windFactor + sway + p.vx) * dt
             p.y -= p.vy * dt
 
-            // Wrap around the sides so the snow stays evenly spread.
-            if p.x < -12 {
-                p.x += width + 24
-            } else if p.x > width + 12 {
-                p.x -= width + 24
-            }
-
+            // Snowflakes wrap around the sides so the snow stays evenly spread;
+            // lumps and puffs that leave the screen are gone.
             var gone = p.y < -20
+            if p.x < -12 || p.x > width + 12 {
+                if p.gravity == 0 {
+                    p.x += p.x < 0 ? width + 24 : -(width + 24)
+                } else {
+                    gone = true
+                }
+            }
             if p.fade > 0 {
                 p.alpha -= p.fade * dt
                 gone = gone || p.alpha <= 0

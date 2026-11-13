@@ -8,6 +8,9 @@ sichqoncha bosishlari qor orqali pastdagi oynalarga o'tadi.
 - **Oynani yopish:** ustida qor bor oynani yopsangiz (yoki kichraytirsangiz), qor pastga to'kiladi.
 - **Oynani surish:** oynani joyidan qo'zg'atsangiz, ustidagi qor to'kilib tushadi.
 - Boshqa ish stoliga (Space) o'tsangiz, oynalardagi qor saqlanib qoladi.
+- **Ekskavator:** Dock ustida kichkina ekskavator turadi. Unga **2 marta bosing**: chelagini tushirib
+  o'ngdan chapga yuradi, yo'lidagi qorni yig'adi, Dock chetidan pastga to'kadi va to'xtaydi.
+  Yana 2 marta bossangiz, endi chapdan o'ngga yuradi.
 
 ## O'rnatish
 
@@ -39,6 +42,7 @@ Menu bar'dagi ❄️ belgisini bosing:
 | Oynalar ustida yog'sin | Yoqilgan: qor hamma oynalar ustida yog'adi. O'chirilgan: faqat ish stoli fonida |
 | Oynalar ustiga yig'ilsin | Qor ochiq oynalarning tepasiga ham yig'ilsin. O'chirilsa, oynalardagi qor tushib ketadi |
 | Yig'ilgan qorni tozalash | Uyumni darhol olib tashlaydi |
+| Ekskavator (2 marta bosing) | Dock ustidagi ekskavatorni ko'rsatadi yoki yashiradi |
 | Dock'ni aniq o'lchash… | Dock kengligini aniq o'lchash uchun ruxsat so'raydi (pastda batafsil) |
 | Mac yonganda ishga tushsin | Kompyuter yonganda Snowfall avtomatik ochiladi |
 
@@ -89,5 +93,7 @@ Ikonkani qayta chizish: `scripts/make-icon.sh`.
 | `Sources/Snowfall/WindowTracker.swift` | Ochiq oynalar joylashuvini kuzatadi; oyna yopildimi yoki boshqa Space'ga o'tildimi, farqlaydi |
 | `Sources/Snowfall/SnowRenderer.swift` | Metal orqali chizish (CPU'ni kam sarflaydi) |
 | `Sources/Snowfall/DockLocator.swift` | Dock qayerdaligini aniqlaydi |
+| `Sources/Snowfall/Excavator.swift` | Ekskavator harakati: chelakni tushirish, qorni yig'ish, chetdan to'kish |
+| `Sources/Snowfall/ExcavatorView.swift` | Ekskavatorni chizadi va 2 marta bosishni ushlaydi (fokusni olmaydigan kichik oyna) |
 
 Talablar: macOS 13 Ventura yoki yangiroq.

@@ -7,6 +7,7 @@ final class SnowWindow: NSWindow {
     let screenFrame: CGRect
     private let metalView: MTKView
     private var renderer: SnowRenderer?
+    private var excavatorPanel: ExcavatorPanel?
 
     init(screen: NSScreen) {
         screenFrame = screen.frame
@@ -34,6 +35,7 @@ final class SnowWindow: NSWindow {
         renderer = SnowRenderer(pixelFormat: metalView.colorPixelFormat, simulation: simulation)
         metalView.delegate = renderer
         if renderer == nil { metalView.isPaused = true }
+        renderer?.onFrame = { [weak self] in self?.syncExcavator() }
 
         // Holding the left mouse button over snow sweeps it away. Reading the global mouse
         // state needs no permission, and clicks still go through to the windows underneath.
@@ -61,6 +63,49 @@ final class SnowWindow: NSWindow {
         } else {
             level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
         }
+    }
+
+    override func close() {
+        excavatorPanel?.close()
+        excavatorPanel = nil
+        super.close()
+    }
+
+    // MARK: - Excavator
+
+    /// Shows or hides the excavator on this screen.
+    func setExcavatorEnabled(_ enabled: Bool) {
+        simulation.setExcavatorEnabled(enabled)
+        guard enabled else {
+            excavatorPanel?.close()
+            excavatorPanel = nil
+            return
+        }
+        if excavatorPanel == nil {
+            let panel = ExcavatorPanel()
+            panel.excavatorView.onDoubleClick = { [weak self] in
+                self?.simulation.startExcavator()
+                self?.wake()
+            }
+            excavatorPanel = panel
+        }
+        // Just above the Dock (and below menus), so double-clicks always reach it.
+        excavatorPanel?.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)) + 1)
+        syncExcavator()
+        excavatorPanel?.orderFrontRegardless()
+    }
+
+    /// Moves the excavator's panel to where the simulation has it, and updates its drawing.
+    private func syncExcavator() {
+        guard let panel = excavatorPanel, let excavator = simulation.excavator else { return }
+        let origin = CGPoint(
+            x: (screenFrame.minX + CGFloat(excavator.x - Excavator.bodyInset)).rounded(),
+            y: (screenFrame.minY + CGFloat(excavator.groundY)).rounded()
+        )
+        if panel.frame.origin != origin {
+            panel.setFrameOrigin(origin)
+        }
+        panel.excavatorView.look = excavator.look
     }
 
     /// Restarts the render loop after it paused itself.
@@ -102,5 +147,6 @@ final class SnowWindow: NSWindow {
         }
         simulation.setShelf(shelf)
         renderer?.pileChanged()
+        syncExcavator()
     }
 }
