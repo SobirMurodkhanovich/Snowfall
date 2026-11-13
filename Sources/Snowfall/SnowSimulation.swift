@@ -98,8 +98,8 @@ final class SnowSimulation {
     /// Ledges of windows currently on screen.
     private(set) var activeLedges: [Ledge] = []
 
-    /// The excavator on the Dock (only on the screen that has the Dock).
-    private(set) var excavator: Excavator?
+    /// The snowplow on the Dock (only on the screen that has the Dock).
+    private(set) var snowplow: Snowplow?
 
     private var shelf: Shelf?
     private var clock: Float = 0
@@ -109,10 +109,10 @@ final class SnowSimulation {
     /// Nothing falling, nothing lying in sight: the render loop can stop.
     var isIdle: Bool {
         !isSnowing && particles.isEmpty && base.isEmpty && activeLedges.allSatisfy { $0.pile.isEmpty }
-            && !(excavator?.isBusy ?? false)
+            && !(snowplow?.isBusy ?? false)
     }
 
-    /// Where the excavator drives: along the top of the Dock, or the bottom of the screen.
+    /// Where the snowplow drives: along the top of the Dock, or the bottom of the screen.
     private var lane: ClosedRange<Float> {
         guard let shelf, shelf.maxX > shelf.minX else { return 0...width }
         return shelf.minX...shelf.maxX
@@ -131,20 +131,20 @@ final class SnowSimulation {
             guard let s = newShelf, x >= s.minX, x <= s.maxX else { return 0 }
             return s.top
         }
-        excavator?.setLane(lane, groundY: shelf?.top ?? 0)
+        snowplow?.setLane(lane, groundY: shelf?.top ?? 0)
     }
 
-    func setExcavatorEnabled(_ enabled: Bool) {
-        if enabled, excavator == nil {
-            excavator = Excavator(lane: lane, groundY: shelf?.top ?? 0)
+    func setSnowplowEnabled(_ enabled: Bool) {
+        if enabled, snowplow == nil {
+            snowplow = Snowplow(lane: lane, groundY: shelf?.top ?? 0)
         } else if !enabled {
-            excavator = nil
+            snowplow = nil
         }
     }
 
-    /// Double-click on the excavator.
-    func startExcavator() {
-        excavator?.start()
+    /// Double-click on the snowplow.
+    func startSnowplow() {
+        snowplow?.start()
     }
 
     func clearAll() {
@@ -263,9 +263,9 @@ final class SnowSimulation {
         if let cursor = cursorProvider?() { sweep(at: cursor) }
         moveParticles(dt)
 
-        if let excavator, excavator.isBusy, let dump = excavator.step(dt: dt, pile: base) {
-            // The bucket's snow tumbles over the end of the Dock.
-            let lumps = min(160, max(3, Int(dump.area / 50)))
+        if let snowplow, snowplow.isBusy, let dump = snowplow.step(dt: dt, pile: base) {
+            // The heap pushed over the end of the Dock tumbles down.
+            let lumps = min(12, max(1, Int(dump.area / 40)))
             for _ in 0..<lumps where particles.count < Self.maxParticles {
                 particles.append(makeLump(
                     x: dump.x + Float.random(in: -4...4),

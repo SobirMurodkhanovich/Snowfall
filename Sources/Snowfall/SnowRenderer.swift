@@ -20,7 +20,7 @@ final class SnowRenderer: NSObject, MTKViewDelegate {
     private var pileVertexCount = 0
     private var pileNeedsRebuild = true
 
-    /// Called on every frame right after the simulation moved (the window syncs the excavator here).
+    /// Called on every frame right after the simulation moved (the window syncs the snowplow here).
     var onFrame: (() -> Void)?
 
     private var lastTime: CFTimeInterval = 0

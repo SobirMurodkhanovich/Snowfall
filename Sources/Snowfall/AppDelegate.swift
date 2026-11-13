@@ -70,18 +70,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hasCheckedDock = true
         lastDock = dock
         windows.forEach { $0.setDock(dock) }
-        placeExcavator()
+        placeSnowplow()
     }
 
-    /// The excavator lives on the screen with the Dock (or the main screen when the Dock is hidden).
-    private func placeExcavator() {
+    /// The snowplow lives on the screen with the Dock (or the main screen when the Dock is hidden).
+    private func placeSnowplow() {
         var host: SnowWindow?
-        if settings.showExcavator {
+        if settings.showSnowplow {
             host = windows.first { $0.screenFrame == lastDock?.screenFrame }
                 ?? windows.first { $0.screenFrame == NSScreen.screens.first?.frame }
         }
         for window in windows {
-            window.setExcavatorEnabled(window === host)
+            window.setSnowplowEnabled(window === host)
         }
     }
 
@@ -143,9 +143,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         onWindows.state = settings.pileOnWindows ? .on : .off
         menu.addItem(onWindows)
         menu.addItem(item("Yig'ilgan qorni tozalash", #selector(clearSnow)))
-        let excavator = item("Ekskavator (2 marta bosing)", #selector(toggleExcavator))
-        excavator.state = settings.showExcavator ? .on : .off
-        menu.addItem(excavator)
+        let plow = item("Qor kurash mashinasi (2 marta bosing)", #selector(toggleSnowplow))
+        plow.state = settings.showSnowplow ? .on : .off
+        menu.addItem(plow)
         menu.addItem(.separator())
 
         if !AXIsProcessTrusted() {
@@ -203,9 +203,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    @objc private func toggleExcavator() {
-        settings.showExcavator.toggle()
-        placeExcavator()
+    @objc private func toggleSnowplow() {
+        settings.showSnowplow.toggle()
+        placeSnowplow()
     }
 
     @objc private func clearSnow() {

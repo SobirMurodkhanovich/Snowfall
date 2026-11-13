@@ -54,7 +54,7 @@ final class Settings {
         static let wind = "wind"
         static let aboveWindows = "aboveWindows"
         static let pileOnWindows = "pileOnWindows"
-        static let showExcavator = "showExcavator"
+        static let showSnowplow = "showSnowplow"
     }
 
     private init() {
@@ -64,7 +64,7 @@ final class Settings {
             Key.wind: Wind.breeze.rawValue,
             Key.aboveWindows: true,
             Key.pileOnWindows: true,
-            Key.showExcavator: true,
+            Key.showSnowplow: true,
         ])
     }
 
@@ -89,10 +89,10 @@ final class Settings {
         set { defaults.set(newValue, forKey: Key.aboveWindows) }
     }
 
-    /// The little excavator on the Dock.
-    var showExcavator: Bool {
-        get { defaults.bool(forKey: Key.showExcavator) }
-        set { defaults.set(newValue, forKey: Key.showExcavator) }
+    /// The little snowplow truck on the Dock.
+    var showSnowplow: Bool {
+        get { defaults.bool(forKey: Key.showSnowplow) }
+        set { defaults.set(newValue, forKey: Key.showSnowplow) }
     }
 
     /// Snow also piles up on top of open windows.

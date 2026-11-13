@@ -128,7 +128,7 @@ final class SnowPile {
         return removed
     }
 
-    /// Removes all visible snow between screen-local `x0` and `x1` (the excavator's bucket).
+    /// Removes all visible snow between screen-local `x0` and `x1` (the snowplow's blade).
     /// Returns the removed area in pt².
     func scrape(from x0: Float, to x1: Float) -> Float {
         guard !isEmpty, x1 >= minX, x0 <= maxX else { return 0 }
