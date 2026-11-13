@@ -1,8 +1,13 @@
 # ❄️ Snowfall
 
-Mac ekraningizda qor yog'adi. Tushgan qor **Dock ustiga** va ekranning pastiga yig'iladi,
-qor to'xtagach esa asta-sekin **erib ketadi**. Qor ishingizga xalaqit bermaydi: sichqoncha
-bosishlari qor orqali pastdagi oynalarga o'tadi.
+Mac ekraningizda qor yog'adi. Tushgan qor **ochiq oynalar ustiga**, **Dock ustiga** va ekranning
+pastiga yig'iladi, qor to'xtagach esa asta-sekin **erib ketadi**. Qor ishingizga xalaqit bermaydi:
+sichqoncha bosishlari qor orqali pastdagi oynalarga o'tadi.
+
+- **Qorni tozalash:** sichqonchani bosib turib qor ustidan yurgizing, kursor ostidagi qor sachrab ketadi.
+- **Oynani yopish:** ustida qor bor oynani yopsangiz (yoki kichraytirsangiz), qor pastga to'kiladi.
+- **Oynani surish:** oynani joyidan qo'zg'atsangiz, ustidagi qor to'kilib tushadi.
+- Boshqa ish stoliga (Space) o'tsangiz, oynalardagi qor saqlanib qoladi.
 
 ## O'rnatish
 
@@ -32,6 +37,7 @@ Menu bar'dagi ❄️ belgisini bosing:
 | Qor kuchi: Kam / O'rtacha / Ko'p | Qor qanchalik qalin yog'ishini belgilaydi |
 | Shamol: Shamolsiz / Yengil / Kuchli | Qor parchalarini yon tomonga uchiradi |
 | Oynalar ustida yog'sin | Yoqilgan: qor hamma oynalar ustida yog'adi. O'chirilgan: faqat ish stoli fonida |
+| Oynalar ustiga yig'ilsin | Qor ochiq oynalarning tepasiga ham yig'ilsin. O'chirilsa, oynalardagi qor tushib ketadi |
 | Yig'ilgan qorni tozalash | Uyumni darhol olib tashlaydi |
 | Dock'ni aniq o'lchash… | Dock kengligini aniq o'lchash uchun ruxsat so'raydi (pastda batafsil) |
 | Mac yonganda ishga tushsin | Kompyuter yonganda Snowfall avtomatik ochiladi |
@@ -78,8 +84,9 @@ Ikonkani qayta chizish: `scripts/make-icon.sh`.
 | --- | --- |
 | `Sources/Snowfall/AppDelegate.swift` | Menu bar menyusi, sozlamalar, har bir ekranga oyna ochish |
 | `Sources/Snowfall/SnowWindow.swift` | Shaffof oyna: sichqonchani o'tkazib yuboradi, hamma Space'larda turadi |
-| `Sources/Snowfall/SnowSimulation.swift` | Qor parchalarining harakati: tushish, chayqalish, shamol |
-| `Sources/Snowfall/SnowPile.swift` | Yig'ilgan qor: ekran 2 pt'lik ustunlarga bo'linadi, qiya joydan qor sirpanadi, asta eriydi |
+| `Sources/Snowfall/SnowSimulation.swift` | Qor parchalari, tushayotgan qor bo'laklari, oynalar ustidagi uyumlar |
+| `Sources/Snowfall/SnowPile.swift` | Yig'ilgan qor: 2 pt'lik ustunlar, qiya joydan qor sirpanadi, asta eriydi, sichqoncha bilan supuriladi |
+| `Sources/Snowfall/WindowTracker.swift` | Ochiq oynalar joylashuvini kuzatadi; oyna yopildimi yoki boshqa Space'ga o'tildimi, farqlaydi |
 | `Sources/Snowfall/SnowRenderer.swift` | Metal orqali chizish (CPU'ni kam sarflaydi) |
 | `Sources/Snowfall/DockLocator.swift` | Dock qayerdaligini aniqlaydi |
 

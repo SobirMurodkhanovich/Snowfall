@@ -7,6 +7,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var windows: [SnowWindow] = []
     private var dockTimer: Timer?
+    private var windowTimer: Timer?
+    private let tracker = WindowTracker()
+    private var trackerPaused = true
     private var lastDock: DockLocator.Dock?
     private var hasCheckedDock = false
 
@@ -30,6 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The Dock changes width when apps open and close, so check it now and then.
         dockTimer = Timer.scheduledTimer(
             timeInterval: 2, target: self, selector: #selector(refreshDock), userInfo: nil, repeats: true
+        )
+        // Window positions, so snow can pile on windows and fall when they close or move.
+        windowTimer = Timer.scheduledTimer(
+            timeInterval: 0.15, target: self, selector: #selector(pollWindows), userInfo: nil, repeats: true
         )
     }
 
@@ -63,6 +70,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hasCheckedDock = true
         lastDock = dock
         windows.forEach { $0.setDock(dock) }
+    }
+
+    @objc private func pollWindows() {
+        // No need to watch windows while nothing is snowing or lying around.
+        guard settings.pileOnWindows, !windows.allSatisfy({ $0.simulation.isIdle }) else {
+            if !trackerPaused {
+                tracker.reset()
+                trackerPaused = true
+            }
+            return
+        }
+        trackerPaused = false
+        tracker.poll()
+        windows.forEach { $0.updateWindows(tracker.windows, closed: tracker.closed) }
     }
 
     private func applySettings() {
@@ -105,6 +126,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let above = item("Oynalar ustida yog'sin", #selector(toggleAboveWindows))
         above.state = settings.aboveWindows ? .on : .off
         menu.addItem(above)
+        let onWindows = item("Oynalar ustiga yig'ilsin", #selector(togglePileOnWindows))
+        onWindows.state = settings.pileOnWindows ? .on : .off
+        menu.addItem(onWindows)
         menu.addItem(item("Yig'ilgan qorni tozalash", #selector(clearSnow)))
         menu.addItem(.separator())
 
@@ -154,6 +178,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func toggleAboveWindows() {
         settings.aboveWindows.toggle()
         applySettings()
+    }
+
+    @objc private func togglePileOnWindows() {
+        settings.pileOnWindows.toggle()
+        if !settings.pileOnWindows {
+            windows.forEach { $0.dropWindowSnow() }
+        }
     }
 
     @objc private func clearSnow() {

@@ -35,6 +35,16 @@ final class SnowWindow: NSWindow {
         metalView.delegate = renderer
         if renderer == nil { metalView.isPaused = true }
 
+        // Holding the left mouse button over snow sweeps it away. Reading the global mouse
+        // state needs no permission, and clicks still go through to the windows underneath.
+        let frame = screenFrame
+        simulation.cursorProvider = {
+            guard NSEvent.pressedMouseButtons & 1 != 0 else { return nil }
+            let mouse = NSEvent.mouseLocation
+            guard frame.contains(mouse) else { return nil }
+            return SIMD2(Float(mouse.x - frame.minX), Float(mouse.y - frame.minY))
+        }
+
         setFrame(screen.frame, display: false)
     }
 
@@ -60,7 +70,23 @@ final class SnowWindow: NSWindow {
     }
 
     func clearPile() {
-        simulation.pile.clear()
+        simulation.clearAll()
+        renderer?.pileChanged()
+        wake()
+    }
+
+    /// Passes the current windows (global coordinates, front to back) on to the simulation.
+    func updateWindows(_ windows: [TrackedWindow], closed: Set<CGWindowID>) {
+        let local = windows.map { (id: $0.id, frame: $0.frame.offsetBy(dx: -screenFrame.minX, dy: -screenFrame.minY)) }
+        if simulation.updateWindows(local, closed: closed) {
+            renderer?.pileChanged()
+        }
+        if !simulation.isIdle { wake() }
+    }
+
+    /// Lets the snow on every window fall down.
+    func dropWindowSnow() {
+        simulation.dropAllLedges()
         renderer?.pileChanged()
         wake()
     }

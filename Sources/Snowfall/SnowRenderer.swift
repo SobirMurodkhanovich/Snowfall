@@ -53,7 +53,7 @@ final class SnowRenderer: NSObject, MTKViewDelegate {
             return nil
         }
 
-        let flakeBytes = SnowSimulation.maxFlakes * MemoryLayout<FlakeInstance>.stride
+        let flakeBytes = SnowSimulation.maxParticles * MemoryLayout<FlakeInstance>.stride
         for _ in 0..<Self.buffersInFlight {
             guard let buffer = device.makeBuffer(length: flakeBytes, options: .storageModeShared) else { return nil }
             flakeBuffers.append(buffer)
@@ -134,28 +134,42 @@ final class SnowRenderer: NSObject, MTKViewDelegate {
     }
 
     private func writeFlakes(into buffer: MTLBuffer) -> Int {
-        let flakes = simulation.flakes
-        let count = min(flakes.count, SnowSimulation.maxFlakes)
+        let particles = simulation.particles
+        let count = min(particles.count, SnowSimulation.maxParticles)
         let out = buffer.contents().bindMemory(to: FlakeInstance.self, capacity: count)
         for i in 0..<count {
-            let f = flakes[i]
-            out[i] = FlakeInstance(position: SIMD2(f.x, f.y), radius: f.radius, alpha: f.alpha)
+            let p = particles[i]
+            out[i] = FlakeInstance(position: SIMD2(p.x, p.y), radius: p.radius, alpha: max(0, p.alpha))
         }
         return count
     }
 
     // MARK: - Pile geometry
 
+    private static let white = SIMD4<Float>(0.97, 0.97, 0.97, 0.97)
+    private static let rimColor = SIMD4<Float>(0.55 * 0.55, 0.64 * 0.55, 0.76 * 0.55, 0.55)
+    private static let shadow = SIMD4<Float>(0, 0, 0, 0.16)
+    private static let clear = SIMD4<Float>(0, 0, 0, 0)
+
+    /// Turns the bottom pile and every window-top pile into triangles.
     private func rebuildPile() {
-        let pile = simulation.pile
-        guard !pile.isEmpty else {
-            pileVertexCount = 0
-            return
+        var vertices: [PileVertex] = []
+        for pile in [simulation.base] + simulation.activeLedges.map(\.pile) where !pile.isEmpty {
+            appendTriangles(of: pile, to: &vertices)
         }
+
+        pileVertexCount = vertices.count
+        guard !vertices.isEmpty else { return }
+        pileBuffer = device.makeBuffer(
+            bytes: vertices, length: vertices.count * MemoryLayout<PileVertex>.stride, options: .storageModeShared
+        )
+    }
+
+    private func appendTriangles(of pile: SnowPile, to vertices: inout [PileVertex]) {
         let ground = pile.ground
         let depth = pile.depth
+        let visible = pile.visible
         let n = pile.count
-        let w = pile.columnWidth
 
         // Smoothed depth (1-4-6-4-1 blur over neighbours on the same ground), so straight
         // segments between columns read as a soft curve.
@@ -171,13 +185,7 @@ final class SnowRenderer: NSObject, MTKViewDelegate {
             shown[i] = sum / 16
         }
 
-        let white = SIMD4<Float>(0.97, 0.97, 0.97, 0.97)
-        let rimColor = SIMD4<Float>(0.55 * 0.55, 0.64 * 0.55, 0.76 * 0.55, 0.55)
-        let shadow = SIMD4<Float>(0, 0, 0, 0.16)
-        let clear = SIMD4<Float>(0, 0, 0, 0)
-
-        var vertices: [PileVertex] = []
-        vertices.reserveCapacity(n * 12)
+        vertices.reserveCapacity(vertices.count + n * 12)
 
         /// Quad between columns at x0 and x1, each spanning bottom…top, coloured bottom→top.
         func quad(_ x0: Float, _ b0: Float, _ t0: Float, _ x1: Float, _ b1: Float, _ t1: Float,
@@ -191,34 +199,28 @@ final class SnowRenderer: NSObject, MTKViewDelegate {
 
         for i in 0..<(n - 1) {
             // Never bridge a step in the ground (the Dock's edge): that would draw a streak down its side.
-            guard ground[i] == ground[i + 1] else { continue }
+            guard ground[i] == ground[i + 1], visible[i], visible[i + 1] else { continue }
             let d0 = shown[i]
             let d1 = shown[i + 1]
             guard d0 > 0.1 || d1 > 0.1 else { continue }
 
-            let x0 = (Float(i) + 0.5) * w
-            let x1 = x0 + w
-            let g = ground[i]
+            let x0 = pile.centerX(of: i)
+            let x1 = x0 + pile.columnWidth
+            let g = pile.baseY + ground[i]
             let top0 = g + d0
             let top1 = g + d1
 
-            // Soft shadow on the Dock just under the snow.
-            if g > 0 {
-                quad(x0, g - 2, g, x1, g - 2, g, clear, shadow, clear, shadow)
+            // Soft shadow just under the snow on the Dock or a window.
+            if g > 0.5 {
+                quad(x0, g - 2, g, x1, g - 2, g, Self.clear, Self.shadow, Self.clear, Self.shadow)
             }
             // The snow itself.
-            quad(x0, g, top0, x1, g, top1, white, white, white, white)
+            quad(x0, g, top0, x1, g, top1, Self.white, Self.white, Self.white, Self.white)
             // Faint blue-grey rim fading upwards: an outline on white windows and a soft edge.
-            let rim0 = rimColor * min(1, d0 / 2)
-            let rim1 = rimColor * min(1, d1 / 2)
-            quad(x0, top0, top0 + 1.2, x1, top1, top1 + 1.2, rim0, clear, rim1, clear)
+            let rim0 = Self.rimColor * min(1, d0 / 2)
+            let rim1 = Self.rimColor * min(1, d1 / 2)
+            quad(x0, top0, top0 + 1.2, x1, top1, top1 + 1.2, rim0, Self.clear, rim1, Self.clear)
         }
-
-        pileVertexCount = vertices.count
-        guard !vertices.isEmpty else { return }
-        pileBuffer = device.makeBuffer(
-            bytes: vertices, length: vertices.count * MemoryLayout<PileVertex>.stride, options: .storageModeShared
-        )
     }
 
     // MARK: - Metal setup

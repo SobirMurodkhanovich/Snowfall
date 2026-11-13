@@ -53,6 +53,7 @@ final class Settings {
         static let intensity = "intensity"
         static let wind = "wind"
         static let aboveWindows = "aboveWindows"
+        static let pileOnWindows = "pileOnWindows"
     }
 
     private init() {
@@ -61,6 +62,7 @@ final class Settings {
             Key.intensity: Intensity.medium.rawValue,
             Key.wind: Wind.breeze.rawValue,
             Key.aboveWindows: true,
+            Key.pileOnWindows: true,
         ])
     }
 
@@ -83,5 +85,11 @@ final class Settings {
     var aboveWindows: Bool {
         get { defaults.bool(forKey: Key.aboveWindows) }
         set { defaults.set(newValue, forKey: Key.aboveWindows) }
+    }
+
+    /// Snow also piles up on top of open windows.
+    var pileOnWindows: Bool {
+        get { defaults.bool(forKey: Key.pileOnWindows) }
+        set { defaults.set(newValue, forKey: Key.pileOnWindows) }
     }
 }
