@@ -1,0 +1,59 @@
+name: DMG yasash
+
+# main'ga har push: DMG yasaladi va Actions sahifasida "Artifacts" bo'limiga qo'yiladi.
+# v* tag push (masalan v1.0.1): DMG yasaladi va GitHub Releases'ga yuklanadi.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # Release yaratish uchun
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Versiyani aniqlash
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            dmg="Snowfall-${version}.dmg"
+          else
+            version="0.0.${GITHUB_RUN_NUMBER}"
+            dmg="Snowfall-dev-${GITHUB_SHA::7}.dmg"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
+          echo "Versiya: $version, fayl: $dmg"
+
+      - name: Ilovani yig'ish (Apple Silicon + Intel)
+        run: scripts/build-app.sh "${{ steps.version.outputs.version }}" "${{ github.run_number }}"
+
+      - name: DMG yasash
+        run: scripts/make-dmg.sh "dist/${{ steps.version.outputs.dmg }}"
+
+      - name: DMG'ni Artifacts'ga qo'yish
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.version.outputs.dmg }}
+          path: dist/${{ steps.version.outputs.dmg }}
+
+      - name: GitHub Release'ga yuklash
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DMG: dist/${{ steps.version.outputs.dmg }}
+        run: |
+          # Release sayt orqali qo'lda ochilgan bo'lsa, faylni unga qo'shamiz; bo'lmasa yangisini ochamiz.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$DMG" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$DMG" \
+              --title "Snowfall $GITHUB_REF_NAME" \
+              --notes-file .github/release-notes.md
+          fi
